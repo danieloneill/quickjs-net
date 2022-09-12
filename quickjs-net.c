@@ -158,7 +158,7 @@ static JSValue js_net_resolve(JSContext *ctx, JSValueConst this_val,
     s = getaddrinfo(node, NULL, &hints, &result);
     if( 0 != s )
     {
-        JS_ThrowReferenceError(ctx, gai_strerror(s));
+        JS_ThrowReferenceError(ctx, "%s", gai_strerror(s));
         goto fail;
     }
 
@@ -241,7 +241,7 @@ static JSValue js_net_connect(JSContext *ctx, JSValueConst this_val,
 
     if( -1 == inet_pton(int_family, addr, &addrbuf) )
     {
-        JS_ThrowTypeError(ctx, strerror(errno));
+        JS_ThrowTypeError(ctx, "%s", strerror(errno));
         goto fail;
     }
 
@@ -255,7 +255,7 @@ static JSValue js_net_connect(JSContext *ctx, JSValueConst this_val,
         
         if( -1 == connect(fd, (struct sockaddr *)&sa, sizeof(struct sockaddr_in)) )
         {
-            JS_ThrowTypeError(ctx, strerror(errno));
+            JS_ThrowTypeError(ctx, "%s", strerror(errno));
             goto fail;
         }
     }
@@ -269,7 +269,7 @@ static JSValue js_net_connect(JSContext *ctx, JSValueConst this_val,
         
         if( -1 == connect(fd, (struct sockaddr *)&sa, sizeof(struct in6_addr)) )
         {
-            JS_ThrowTypeError(ctx, strerror(errno));
+            JS_ThrowTypeError(ctx, "%s", strerror(errno));
             goto fail;
         }
     }
@@ -319,7 +319,7 @@ static JSValue js_net_bind(JSContext *ctx, JSValueConst this_val,
 
     if( -1 == inet_pton(int_family, addr, &addrbuf) )
     {
-        JS_ThrowTypeError(ctx, strerror(errno));
+        JS_ThrowTypeError(ctx, "%s", strerror(errno));
         goto fail;
     }
 
@@ -337,7 +337,7 @@ static JSValue js_net_bind(JSContext *ctx, JSValueConst this_val,
         
         if( -1 == bind(fd, (struct sockaddr *)&sa, sizeof(struct sockaddr_in)) )
         {
-            JS_ThrowTypeError(ctx, strerror(errno));
+            JS_ThrowTypeError(ctx, "%s", strerror(errno));
             goto fail;
         }
     }
@@ -351,7 +351,7 @@ static JSValue js_net_bind(JSContext *ctx, JSValueConst this_val,
         
         if( -1 == bind(fd, (struct sockaddr *)&sa, sizeof(struct sockaddr_in6)) )
         {
-            JS_ThrowTypeError(ctx, strerror(errno));
+            JS_ThrowTypeError(ctx, "%s", strerror(errno));
             goto fail;
         }
     }
@@ -379,7 +379,7 @@ static JSValue js_net_listen(JSContext *ctx, JSValueConst this_val,
     int s = listen(fd, backlog);
     if( -1 == s )
     {
-        JS_ThrowTypeError(ctx, strerror(errno));
+        JS_ThrowTypeError(ctx, "%s", strerror(errno));
         return JS_UNDEFINED;
     }
 
@@ -401,7 +401,7 @@ static JSValue js_net_accept(JSContext *ctx, JSValueConst this_val,
     outfd = accept(infd, (struct sockaddr *)&sockaddr, &socklen);
     if( -1 == outfd )
     {
-        JS_ThrowTypeError(ctx, strerror(errno));
+        JS_ThrowTypeError(ctx, "%s", strerror(errno));
         return JS_UNDEFINED;
     }
 
@@ -419,7 +419,7 @@ static JSValue js_net_accept(JSContext *ctx, JSValueConst this_val,
     const char *r = inet_ntop(sockaddr.sin6_family, ptr, outip, BUFSIZ-1);
     if( NULL == r )
     {
-        JS_ThrowTypeError(ctx, strerror(errno));
+        JS_ThrowTypeError(ctx, "%s", strerror(errno));
         return JS_UNDEFINED;
     }
 
@@ -448,7 +448,7 @@ static JSValue js_net_close(JSContext *ctx, JSValueConst this_val,
 
     if( -1 == close(fd) )
     {
-        JS_ThrowTypeError(ctx, strerror(errno));
+        JS_ThrowTypeError(ctx, "%s", strerror(errno));
         return JS_UNDEFINED;
     }
 
@@ -487,7 +487,7 @@ static JSValue js_net_shutdown(JSContext *ctx, JSValueConst this_val,
 
     if( -1 == shutdown(fd, intmode) )
     {
-        JS_ThrowTypeError(ctx, strerror(errno));
+        JS_ThrowTypeError(ctx, "%s", strerror(errno));
         return JS_UNDEFINED;
     }
 
