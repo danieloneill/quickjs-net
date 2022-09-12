@@ -1,5 +1,7 @@
 # quickjs-net
-Basic low-level networking implementation for QuickJS.
+Basic low-level networking implementation for [QuickJS](https://bellard.org/quickjs/).
+
+**This code currently builds against QuickJS-2021-03-27**
 
 ## Building
 Edit Makefile and point QJSPATH to your quickjs root then just build with *make*.
