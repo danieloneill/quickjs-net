@@ -91,7 +91,7 @@ function close(info)
 {
     os.setReadHandler(info.fd, null);
     net.shutdown(info.fd);
-    net.close(info.fd);
+    os.close(info.fd);
     console.log(`Closing connection from ${info.family}:[${info.ip}]:${info.port}`);
 }
 
@@ -109,7 +109,7 @@ function sendFileChunk(info)
         if( 0 == br )
         {
             os.setReadHandler(info.file, null);
-            net.close(info.file);
+            os.close(info.file);
             close(info);
 
             return;
@@ -120,7 +120,7 @@ function sendFileChunk(info)
         console.log("sendfile: "+err);
         console.log( new Error().stack );
         os.setReadHandler(info.file, null);
-        net.close(info.file);
+        os.close(info.file);
         close(info);
     }
 }
@@ -177,4 +177,6 @@ function handlePacket(info, pkt)
         sendFile(info, 'github.png', 'image/png');
     else
         send404(info);
+
+    std.gc();
 }

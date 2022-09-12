@@ -437,24 +437,6 @@ static JSValue js_net_accept(JSContext *ctx, JSValueConst this_val,
     return ent;
 }
 
-static JSValue js_net_close(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv)
-{
-    int result;
-    int64_t fd;
-
-    if( JS_ToInt64(ctx, &fd, argv[0]) )
-        return JS_EXCEPTION;
-
-    if( -1 == close(fd) )
-    {
-        JS_ThrowTypeError(ctx, "%s", strerror(errno));
-        return JS_UNDEFINED;
-    }
-
-    return JS_TRUE;
-}
-
 static JSValue js_net_shutdown(JSContext *ctx, JSValueConst this_val,
                                int argc, JSValueConst *argv)
 {
@@ -470,7 +452,7 @@ static JSValue js_net_shutdown(JSContext *ctx, JSValueConst this_val,
     {
         JS_ThrowTypeError(ctx, "mode must be specified");
         JS_FreeCString(ctx, mode);
-        return JS_FALSE;
+        return JS_UNDEFINED;
     }
 
     int intmode = -1;
@@ -501,7 +483,6 @@ static const JSCFunctionListEntry js_net_funcs[] = {
     JS_CFUNC_DEF("bind", 3, js_net_bind ),
     JS_CFUNC_DEF("listen", 2, js_net_listen ),
     JS_CFUNC_DEF("accept", 1, js_net_accept ),
-    JS_CFUNC_DEF("close", 1, js_net_close ),
     JS_CFUNC_DEF("shutdown", 2, js_net_shutdown ),
 };
 

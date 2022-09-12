@@ -40,7 +40,7 @@ os.setReadHandler(fd, function() {
             console.log('closing...');
             os.setReadHandler(fd, null);
             net.shutdown(fd);
-            net.close(fd);
+            os.close(fd);
 
             os.close(fout);
 

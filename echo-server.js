@@ -73,7 +73,7 @@ function setupClient(info)
             {
                 console.log(`Connection closed from ${info.family}:[${info.ip}]:${info.port}`);
                 os.setReadHandler(fd, null);
-                net.close(fd);
+                os.close(fd);
             }
             else
             {
