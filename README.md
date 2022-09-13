@@ -43,5 +43,5 @@ See examples, or read the source. It's not very long, and pretty plain C.
 
 Don't be shy about making an issue or PR, and thanks for your interest.
 
-
+Also check out [my hashing module for QuickJS](https://github.com/danieloneill/quickjs-hash).
 
