@@ -2,7 +2,8 @@ import * as net from "net.so";
 import * as std from "std";
 import * as os from "os";
 
-const sinfo = { 'family':'inet6', 'ip':'::', 'port':8080 };
+const sinfo = { 'family':'inet6', 'ip':'::', 'port':8081 };
+const webroot = './webroot';
 
 function uint8arrayToString(arr)
 {
@@ -145,15 +146,22 @@ function sendFile(info, path, mimetype)
     });
 }
 
+function sendContent(info, content, mimetype, fullstatus)
+{
+    if( !fullstatus )
+        fullstatus = '200 OK';
+    const asstr = `HTTP/1.0 ${fullstatus}\r\nConnection: close\r\nContent-Type: ${mimetype}\r\nContent-Length: ${content.length}\r\n\r\n${content}`;
+    const newbuf = stringToUint8array(asstr);
+    os.write(info.fd, newbuf.buffer, 0, newbuf.length);
+    close(info);
+}
+
 function send404(info)
 {
     console.log(" xxx Sending 404...");
     console.log( new Error().stack );
     const content = "<html><head><title>404 - Not Found</title></head><body><h2>Sorry, resource not found.</h2></body></html>";
-    const asstr = `HTTP/1.0 404 Not Found\r\nConnection: close\r\nContent-Type: text/html\r\nContent-Length: ${content.length}\r\n\r\n${content}`;
-    const newbuf = stringToUint8array(asstr);
-    os.write(info.fd, newbuf.buffer, 0, newbuf.length);
-    close(info);
+    sendContent(info, content, 'text/html', '400 Not Found');
 }
 
 function handlePacket(info, pkt)
@@ -176,7 +184,123 @@ function handlePacket(info, pkt)
     else if( req[1] == '/github.png' )
         sendFile(info, 'github.png', 'image/png');
     else
-        send404(info);
+        sendResource(info, webroot, req[1].substr(1));
 
     std.gc();
 }
+
+function sendResource(info, root, path)
+{
+    const fullpath = root + '/' + path;
+    const [sobj, serr] = os.stat(fullpath);
+    if( !sobj )
+    {
+        console.log(`404: ${fullpath}`);
+        return send404(info);
+    }
+
+    if( sobj.mode & os.S_IFDIR )
+        return sendContent(info, dirListing(root, path), 'text/html');
+    else if( sobj.mode & os.S_IFREG )
+    {
+        //sendContent(info, "I'm a file.", 'text/html');
+        let mimetype = 'text/plain';
+        if( path.endsWith('.png') )
+            mimetype = 'image/png';
+        else if( path.endsWith('.jpg') )
+            mimetype = 'image/jpg';
+        else if( path.endsWith('.css') )
+            mimetype = 'text/css';
+        else if( path.endsWith('.js') )
+            mimetype = 'text/javascript';
+        else if( path.endsWith('.otf') )
+            mimetype = 'font/otf';
+        sendFile(info, fullpath, mimetype);
+    }
+    else
+        sendContent(info, "I'm something else.", 'text/html');
+        //sendContent(info, dirListing('/tmp', '/tmp'), 'text/html');
+}
+
+function dirListing(root, path)
+{
+    const fullpath = `${root}/${path}`;
+    const [ents, rerr] = os.readdir(fullpath);
+
+    let result = `<!DOCTYPE html>
+<html>
+    <head>
+        <title>Listing of ${path}</title>
+        <link rel="stylesheet" href="/internal/css/style.css"></link>
+        <script src="/internal/js/gallery.js"></script>
+        <link rel="stylesheet" href="/internal/css/fontawesome.min.css"></link>
+        <link rel="stylesheet" href="/internal/css/all.min.css"></link>
+    </head>
+    <body onLoad="initKeys();">
+        <div id="background"></div>
+        <div id="content">
+            <h1>Listing of ${path}</h1>
+            <hr />
+            <table width="100%">`;
+
+    let images = [];
+    let index = 0;
+
+    let pathParts = path.split(/\//g).filter( function(p) { return p.length > 0; } );
+    if( pathParts.length > 0 )
+    {
+        pathParts.pop();
+        const prevPath = pathParts.join('/');
+        result += `<tr>
+            <td colspan="4"><a href="/${prevPath}">Up to /${prevPath}</a></td>
+        </tr>`;
+    }
+
+    for( const e of ents )
+    {
+        if( e === '.' || e === '..' )
+            continue;
+
+        const filepath = `${fullpath}/${e}`;
+        const [sobj, serr] = os.stat(filepath);
+        let niceSize = '???';
+        let mdate = '???';
+        if( !sobj )
+            niceSize = serr;
+        else
+        {
+            niceSize = bytesToSize(sobj.size);
+            mdate = new Date(sobj.mtime);
+        }
+
+        let imgLink = '';
+        if( e.endsWith('.png') || e.endsWith('.jpg') || e.endsWith('.gif') )
+        {
+            images.push( `${path}/${e}` );
+            imgLink = `<span onClick="openGallery(${index});" style="cursor: pointer;"><i class="fas fa-regular fa-images"></i></span>`;
+            index++;
+        }
+
+        result += `<tr>
+            <td><a href="${path}/${e}">${e}</a></td>
+            <td>${niceSize}</td>
+            <td>${mdate}</td>
+            <td>${imgLink}</td>
+        </tr>`;
+    }
+    result += `</table></div>
+    <script>const images = ${JSON.stringify(images)};</script>
+    <div id="imageViewer" onClick="closeGallery();"><img onClick="closeGallery();" id="focusImage" /><br /><span id="imageLabel"></span></div>
+    </body></html>`;
+
+    return result;
+}
+
+function bytesToSize(bytes) {
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
+  if (bytes === 0) return 'n/a'
+  const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)), 10)
+  if (i === 0) return `${bytes} ${sizes[i]})`
+  return `${(bytes / (1024 ** i)).toFixed(1)} ${sizes[i]}`
+}
+

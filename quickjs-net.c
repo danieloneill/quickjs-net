@@ -1,6 +1,8 @@
 #include "quickjs-net.h"
 #include "cutils.h"
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
@@ -365,6 +367,16 @@ fail:
     return JS_FALSE;
 }
 
+static JSValue js_net_sync(JSContext *ctx, JSValueConst this_val,
+                           int argc, JSValueConst *argv)
+{
+    uint64_t fd = 0;
+    if( JS_ToInt64(ctx, &fd, argv[0]) )
+        return JS_EXCEPTION;
+
+    return 0 == syncfs(fd) ? JS_TRUE : JS_FALSE;
+}
+
 static JSValue js_net_listen(JSContext *ctx, JSValueConst this_val,
                            int argc, JSValueConst *argv)
 {
@@ -481,6 +493,7 @@ static const JSCFunctionListEntry js_net_funcs[] = {
     JS_CFUNC_DEF("resolve", 1, js_net_resolve ),
     JS_CFUNC_DEF("connect", 4, js_net_connect ),
     JS_CFUNC_DEF("bind", 3, js_net_bind ),
+    JS_CFUNC_DEF("sync", 1, js_net_sync ),
     JS_CFUNC_DEF("listen", 2, js_net_listen ),
     JS_CFUNC_DEF("accept", 1, js_net_accept ),
     JS_CFUNC_DEF("shutdown", 2, js_net_shutdown ),
