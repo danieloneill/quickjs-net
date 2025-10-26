@@ -10,8 +10,13 @@ Edit Makefile and point QJSPATH to your quickjs root then just build with *make*
 
 Now you should be able to run the examples:
  * echo-server.js
+  * Run `qjs echo-server.js`, then connect to it via `telnet ::1 54321`.
+
  * httpclient.js
+  * Run `qjs httpclient.js` to download an image file to *out.jpg*.
+
  * httpserver.js
+  * Run `qjs httpserver.js` and then, on the same PC, point a browser to *http://[::1]:8081*
 
 ## Documentation
 
@@ -49,5 +54,5 @@ See examples, or read the source. It's not very long, and pretty plain C.
 
 Don't be shy about making an issue or PR, and thanks for your interest.
 
-Also check out my [quickjs-hash](https://github.com/danieloneill/quickjs-hash) and [quickjs-wolfssl](https://github.com/danieloneill/quickjs-wolfssl) modules.
+Also check out my [quickjs-hash](https://github.com/danieloneill/quickjs-hash), [quickjs-dbi](https://github.com/danieloneill/quickjs-dbi) and [quickjs-wolfssl](https://github.com/danieloneill/quickjs-wolfssl) modules.
 

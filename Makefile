@@ -4,7 +4,7 @@ QJSPATH=../../quickjs-2025-09-13
 
 CC=gcc
 CFLAGS=-I$(QJSPATH) -fPIC
-LDFLAGS=$(QJSPATH)/libquickjs.a
+LDFLAGS=
 
 net.so: quickjs-net.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -shared -o net.so quickjs-net.o
