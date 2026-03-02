@@ -22,7 +22,7 @@ function stringToUint8array(str)
 
 const serverfd = net.socket(sinfo.family, net.SOCK_STREAM);
 try {
-    if( !net.bind(serverfd, sinfo.family, sinfo.ip, sinfo.port) )
+    if( !net.bind(serverfd, sinfo.ip, sinfo.port) )
     {
         console.log('failed to bind');
         std.exit(-1);
@@ -43,7 +43,7 @@ try {
     std.exit(-1);
 }
 
-os.setReadHandler(serverfd, function() {
+os.setReadHandler(serverfd.fd, function() {
     try {
         const info = net.accept(serverfd);
         // Just replace "family" with the resolved family name, since we don't really key on it.
@@ -81,7 +81,7 @@ function setupClient(info)
             {
                 const asstr = uint8arrayToString(data);
                 handlePacket(info, asstr);
-                net.shutdown(info.fd, 'rd');
+                net.shutdown(info, net.SHUT_RD);
                 os.setReadHandler(info.fd, null);
             }
         } catch(err) {
@@ -94,7 +94,7 @@ function setupClient(info)
 function close(info)
 {
     os.setReadHandler(info.fd, null);
-    net.shutdown(info.fd);
+    net.shutdown(info);
     os.close(info.fd);
     console.log(`Closing connection from ${info.family}:[${info.ip}]:${info.port}`);
 }

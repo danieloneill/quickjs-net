@@ -21,7 +21,7 @@ function stringToUint8array(str)
 
 const serverfd = net.socket(sinfo.domain, net.SOCK_STREAM);
 try {
-    if( !net.bind(serverfd, sinfo.domain, sinfo.addr, sinfo.port) )
+    if( !net.bind(serverfd, sinfo.addr, sinfo.port) )
     {
         console.log('failed to bind');
         std.exit(-1);
@@ -43,10 +43,10 @@ try {
 }
 
 let handles = {};
-os.setReadHandler(serverfd, function() {
+os.setReadHandler(serverfd.fd, function() {
     try {
         const info = net.accept(serverfd);
-        console.log(`Connection from ${info.family}:[${info.ip}]:${info.port}`);
+        console.log(`Connection from ${net.familyname(info.family)}:[${info.ip}]:${info.port}`);
         setupClient(info);
     } catch(err) {
         console.log("accept: "+err);
@@ -54,7 +54,7 @@ os.setReadHandler(serverfd, function() {
     }
 });
 
-console.log(`Listening on ${sinfo.domain}:[${sinfo.addr}]:${sinfo.port}`);
+console.log(`Listening on ${net.familyname(sinfo.domain)}:[${sinfo.addr}]:${sinfo.port}`);
 
 function setupClient(info)
 {
@@ -71,7 +71,7 @@ function setupClient(info)
             }
             else if( 0 == br )
             {
-                console.log(`Connection closed from ${info.family}:[${info.ip}]:${info.port}`);
+                console.log(`Connection closed from ${net.familyname(info.family)}:[${info.ip}]:${info.port}`);
                 os.setReadHandler(fd, null);
                 os.close(fd);
             }

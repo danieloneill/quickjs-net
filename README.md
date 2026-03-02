@@ -53,41 +53,38 @@ These constants are:
 
 All methods are on the globally allocated module object and include:
 
- * accept(fd) -> { 'family':(same as domain in `socket`), 'ip':'1.2.3.4', 'port':54321, 'fd':5 }
-   * fd is a socket as allocated by socket, bound with bind, and listening with listen
+ * accept(handle) -> { 'family':(same as domain in `socket`), 'ip':'1.2.3.4', 'port':54321, 'fd':5 }
+   * handle is allocated by socket, bound with bind, and listening with listen
    * ip and port will be absent if family is of type AF_UNIX
- * bind(fd, domain, address, port) -> true/false
-   * fd as allocated from socket or accept
-   * domain should be as in `socket`
+ * bind(fd, address, port) -> true/false
+   * handle as allocated from socket
    * address should be an ip as in "::1" or "127.0.0.1", or a unix path as in "/tmp/mysocket", depending on domain
    * port number in host byte order, and should not be passed for unix sockets
- * connect(fd, domain, address, port) -> true/false
-   * fd as allocated from socket or accept
-   * domain should be as in `socket`
+ * connect(handle, address, port) -> true/false
+   * handle as allocated from socket
    * address should be an ip as in a result object's ip trait as returned from resolve, or a unix path such as "@/tmp/.X11-unix/X0" if it's a UNIX socket
    * port number in host byte order, and should not be passed for unix sockets
  * familyname(domain) -> string
    * domain should be net.AF_INET, AF_INET6, AF_UNSPEC, or AF_UNIX
- * listen(fd, backlog) -> true/false
-   * fd as allocated from socket or accept
+ * listen(handle, backlog) -> true/false
+   * handle as allocated from socket
    * same as man(3) listen almost exactly, but errors are Exceptions
  * resolve(hostname, domain) -> [ { 'family':net.AF_INET6, 'type':net.SOCK_DGRAM, 'ip':'208.113.236.64' } ]
    * hostname such as "oneill.app" or "battle.net"
-   * domain should be as in `socket`
+   * domain should be either net.AF_INET or net.AF_INET6
    * **See notes below regarding this method!**
- * socket(domain, type) -> fd
+ * socket(domain, type) -> handle
    * domain should be net.AF_INET, AF_INET6, or AF_UNIX
    * type should be net.SOCK_STREAM, SOCK_DGRAM, or SOCK_RAW
  * socktypename(type) -> string
    * type should be net.SOCK_STREAM, SOCK_DGRAM, or SOCK_RAW
  * shutdown(fd, how) -> true/false
    * where how is one of net.SHUT_RD, SHUT_WR, or SHUT_RDWR
- * sync(fd) -> true/false
-   * fd as allocated from socket or accept
+ * sync(handle) -> true/false
+   * handle as allocated from socket or accept
    * same as man(2) syncfs
  
-
-Why do "connect" and "bind" require the domain? Well, because. Well, it's because `socket` just returns a file descriptor without domain type which we need in order to correctly connect or bind.
+`handle` is like: `{ "fd":123, "family":10, "type":3 }` where "fd" can be used with std/os methods such as os.setReadHandler, "family" is net.AF_UNIX, net.AF_INET, etc, and "type" is net.SOCK_STREAM, net.SOCK_DGRAM, etc.
 
 The *resolve* method is synchronous and will block execution while it's running. I may add an async method at some point, but for my purposes it's not an issue (because I don't even use it).
 

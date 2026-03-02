@@ -25,22 +25,22 @@ let curline = [];
 let lines = [];
 let fout = os.open(outfilename, (os.O_CREAT | os.O_TRUNC | os.O_WRONLY), 0o777);
 
-const fd = net.socket(net.AF_INET, net.SOCK_STREAM);
-os.setReadHandler(fd, function() {
+const handle = net.socket(net.AF_INET, net.SOCK_STREAM);
+os.setReadHandler(handle.fd, function() {
     let data = new Uint8Array(1024);
     try {
-        const br = os.read(fd, data.buffer, 0, data.length);
+        const br = os.read(handle.fd, data.buffer, 0, data.length);
         if( br < 0 ) {
             console.log("read error");
-            os.setReadHandler(fd, null);
+            os.setReadHandler(handle.fd, null);
             return;
         }
         else if( 0 == br )
         {
             console.log('closing...');
-            os.setReadHandler(fd, null);
-            net.shutdown(fd);
-            os.close(fd);
+            os.setReadHandler(handle.fd, null);
+            net.shutdown(handle);
+            os.close(handle.fd);
 
             os.close(fout);
 
@@ -82,7 +82,7 @@ os.setReadHandler(fd, function() {
         }
     } catch(err) {
         console.log("readhandler: "+err);
-        os.setReadHandler(fd, null);
+        os.setReadHandler(handle.fd, null);
         std.exit(-1);
     }
 });
@@ -96,7 +96,7 @@ try {
     std.exit(-1);
 }
 
-if( !net.connect(fd, net.AF_INET, iplist[0].ip, 80) )
+if( !net.connect(handle, iplist[0].ip, 80) )
 {
     console.log("no connect");
 }
@@ -105,5 +105,5 @@ else
     console.log("connected");
     const reqstr = 'GET /wp-content/uploads/2020/12/anastasiya-judy-cyberpunk3-min-560x700.jpg HTTP/1.0\r\nConnection: close\r\nHost: cogconnected.com\r\n\r\n';
     const newbuf = stringToUint8array(reqstr);
-    os.write(fd, newbuf.buffer, 0, newbuf.length);
+    os.write(handle.fd, newbuf.buffer, 0, newbuf.length);
 }

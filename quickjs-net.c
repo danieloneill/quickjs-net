@@ -98,6 +98,21 @@ static const char *net_int_to_socktype(int socktype)
     return "unknown";
 }
 
+static int net_sock_get_field(JSContext *ctx, JSValueConst sockv, char *fieldname)
+{
+    JSValue v = JS_GetPropertyStr(ctx, sockv, fieldname);
+    if( JS_IsException(v) )
+        return -1;
+
+    int32_t field;
+    int rc = JS_ToInt32(ctx, &field, v);
+    JS_FreeValue(ctx, v);
+    if( rc )
+        return -1;
+
+    return field;
+}
+
 static JSValue js_net_familyname(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv)
 {
@@ -163,7 +178,13 @@ static JSValue js_net_socket(JSContext *ctx, JSValueConst this_val,
 
     if (-1 == fd)
         return JS_NULL;
-    return JS_NewInt64(ctx, fd);
+
+    JSValue o = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, o, "fd", JS_NewInt32(ctx, fd));
+    JS_SetPropertyStr(ctx, o, "family", JS_NewInt32(ctx, intdomain));
+    JS_SetPropertyStr(ctx, o, "type", JS_NewInt32(ctx, inttype));
+
+    return o;
 }
 
 static JSValue js_net_resolve(JSContext *ctx, JSValueConst this_val,
@@ -246,7 +267,7 @@ static JSValue js_net_connect(JSContext *ctx, JSValueConst this_val,
 {
     unsigned char addrbuf[sizeof(struct in6_addr)];
     const char *addr=NULL;
-    int64_t fd, port;
+    int32_t fd, port;
     int int_family;
 
     struct sockaddr_in sa4;
@@ -255,20 +276,24 @@ static JSValue js_net_connect(JSContext *ctx, JSValueConst this_val,
     struct sockaddr *sa;
     int socklen;
 
-    if( argc < 3 ) {
-        JS_ThrowTypeError(ctx, "expect fd, family, and address at least");
+    if( argc < 2 ) {
+        JS_ThrowTypeError(ctx, "expect socket and address at least");
         goto fail;
     }
 
-    if( JS_ToInt64(ctx, &fd, argv[0]) )
-        return JS_EXCEPTION;
-
-    if( JS_ToInt32(ctx, &int_family, argv[1]) ) {
-        JS_ThrowTypeError(ctx, "invalid family");
+    fd = net_sock_get_field(ctx, argv[0], "fd");
+    if( fd <= 0 ) {
+        JS_ThrowTypeError(ctx, "expect socket with fd");
         goto fail;
     }
 
-    addr = JS_ToCString(ctx, argv[2]);
+    int_family = net_sock_get_field(ctx, argv[0], "family");
+    if( fd <= 0 ) {
+        JS_ThrowTypeError(ctx, "expect socket with family");
+        goto fail;
+    }
+
+    addr = JS_ToCString(ctx, argv[1]);
     if (!addr)
     {
         JS_ThrowTypeError(ctx, "addr must be specified");
@@ -277,12 +302,12 @@ static JSValue js_net_connect(JSContext *ctx, JSValueConst this_val,
 
     addrbuf[0] = '\0';
     if( AF_UNIX != int_family ) {
-        if( argc < 4 ) {
+        if( argc < 3 ) {
             JS_ThrowTypeError(ctx, "port must be specified");
             goto fail;
         }
 
-        if( JS_ToInt64(ctx, &port, argv[3]) )
+        if( JS_ToInt32(ctx, &port, argv[2]) )
             return JS_EXCEPTION;
 
         if( -1 == inet_pton(int_family, addr, &addrbuf) )
@@ -357,7 +382,7 @@ static JSValue js_net_bind(JSContext *ctx, JSValueConst this_val,
 {
     unsigned char addrbuf[sizeof(struct in6_addr)];
     const char *addr=NULL;
-    int64_t fd, port;
+    int32_t fd, port;
     int int_family, one=1;
 
     struct sockaddr_in sa4;
@@ -366,13 +391,24 @@ static JSValue js_net_bind(JSContext *ctx, JSValueConst this_val,
     struct sockaddr *sa;
     int socklen;
 
-    if( JS_ToInt64(ctx, &fd, argv[0]) )
-        return JS_EXCEPTION;
+    if( argc < 2 ) {
+        JS_ThrowTypeError(ctx, "expect socket and address at least");
+        goto fail;
+    }
 
-    if( JS_ToInt32(ctx, &int_family, argv[1]) )
-        return JS_EXCEPTION;
+    fd = net_sock_get_field(ctx, argv[0], "fd");
+    if( fd <= 0 ) {
+        JS_ThrowTypeError(ctx, "expect socket with fd");
+        goto fail;
+    }
 
-    addr = JS_ToCString(ctx, argv[2]);
+    int_family = net_sock_get_field(ctx, argv[0], "family");
+    if( fd <= 0 ) {
+        JS_ThrowTypeError(ctx, "expect socket with family");
+        goto fail;
+    }
+
+    addr = JS_ToCString(ctx, argv[1]);
     if (!addr)
     {
         JS_ThrowTypeError(ctx, "addr must be specified");
@@ -381,12 +417,12 @@ static JSValue js_net_bind(JSContext *ctx, JSValueConst this_val,
 
     addrbuf[0] = '\0';
     if( AF_UNIX != int_family ) {
-        if( argc < 4 ) {
+        if( argc < 3 ) {
             JS_ThrowTypeError(ctx, "port must be specified");
             goto fail;
         }
 
-        if( JS_ToInt64(ctx, &port, argv[3]) )
+        if( JS_ToInt32(ctx, &port, argv[2]) )
             return JS_EXCEPTION;
 
         if( -1 == inet_pton(int_family, addr, &addrbuf) )
@@ -458,9 +494,17 @@ fail:
 static JSValue js_net_sync(JSContext *ctx, JSValueConst this_val,
                            int argc, JSValueConst *argv)
 {
-    int64_t fd = 0;
-    if( JS_ToInt64(ctx, &fd, argv[0]) )
+    int32_t fd = 0;
+    if( argc < 1 ) {
+        JS_ThrowTypeError(ctx, "expect socket with fd property");
         return JS_EXCEPTION;
+    }
+
+    fd = net_sock_get_field(ctx, argv[0], "fd");
+    if( fd <= 0 ) {
+        JS_ThrowTypeError(ctx, "expect socket with fd property");
+        return JS_EXCEPTION;
+    }
 
     return 0 == syncfs(fd) ? JS_TRUE : JS_FALSE;
 }
@@ -468,12 +512,20 @@ static JSValue js_net_sync(JSContext *ctx, JSValueConst this_val,
 static JSValue js_net_listen(JSContext *ctx, JSValueConst this_val,
                            int argc, JSValueConst *argv)
 {
-    int64_t fd, backlog;
+    int32_t fd, backlog;
 
-    if( JS_ToInt64(ctx, &fd, argv[0]) )
+    if( argc < 2 ) {
+        JS_ThrowTypeError(ctx, "expect socket with fd property and backlog");
         return JS_EXCEPTION;
+    }
 
-    if( JS_ToInt64(ctx, &backlog, argv[1]) )
+    fd = net_sock_get_field(ctx, argv[0], "fd");
+    if( fd <= 0 ) {
+        JS_ThrowTypeError(ctx, "expect socket with fd property");
+        return JS_EXCEPTION;
+    }
+
+    if( JS_ToInt32(ctx, &backlog, argv[1]) )
         return JS_EXCEPTION;
 
     int s = listen(fd, backlog);
@@ -491,12 +543,20 @@ static JSValue js_net_accept(JSContext *ctx, JSValueConst this_val,
 {
     struct sockaddr_storage sockaddr;
     socklen_t socklen = sizeof(sockaddr);
-    int64_t infd, outfd, port=0;
+    int32_t infd, outfd, port=0;
     char outip[BUFSIZ];
     void *ptr = NULL;
 
-    if( JS_ToInt64(ctx, &infd, argv[0]) )
+    if( argc < 1 ) {
+        JS_ThrowTypeError(ctx, "expect socket with fd property and backlog");
         return JS_EXCEPTION;
+    }
+
+    infd = net_sock_get_field(ctx, argv[0], "fd");
+    if( infd <= 0 ) {
+        JS_ThrowTypeError(ctx, "expect socket with fd property");
+        return JS_EXCEPTION;
+    }
 
     outfd = accept(infd, (struct sockaddr *)&sockaddr, &socklen);
     if( -1 == outfd )
@@ -551,11 +611,18 @@ static JSValue js_net_shutdown(JSContext *ctx, JSValueConst this_val,
                                int argc, JSValueConst *argv)
 {
     int result;
-    int64_t fd;
-    int32_t mode = SHUT_RDWR;
+    int32_t fd, mode = SHUT_RDWR;
 
-    if( JS_ToInt64(ctx, &fd, argv[0]) )
+    if( argc < 1 ) {
+        JS_ThrowTypeError(ctx, "expect socket with fd property");
         return JS_EXCEPTION;
+    }
+
+    fd = net_sock_get_field(ctx, argv[0], "fd");
+    if( fd <= 0 ) {
+        JS_ThrowTypeError(ctx, "expect socket with fd property");
+        return JS_EXCEPTION;
+    }
 
     if( argc > 1) {
         if( JS_ToInt32(ctx, &mode, argv[1]) )
