@@ -2,7 +2,7 @@ import * as net from "net.so";
 import * as std from "std";
 import * as os from "os";
 
-const sinfo = { 'domain':'inet6', 'addr':'::', 'port':54321 };
+const sinfo = { 'domain':net.AF_INET6, 'addr':'::', 'port':54321 };
 
 function uint8arrayToString(arr)
 {
@@ -19,7 +19,7 @@ function stringToUint8array(str)
     return new Uint8Array(arr);
 }
 
-const serverfd = net.socket(sinfo.domain, 'stream');
+const serverfd = net.socket(sinfo.domain, net.SOCK_STREAM);
 try {
     if( !net.bind(serverfd, sinfo.domain, sinfo.addr, sinfo.port) )
     {

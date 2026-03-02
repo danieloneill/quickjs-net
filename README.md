@@ -20,33 +20,74 @@ Now you should be able to run the examples:
 
 ## Documentation
 
- * socket(domain, type) -> fd
-   * domain should be 'inet' or 'inet6'. ('unix' and 'local' are recognised but likely not useful)
-   * type should be 'stream', 'dgram', or 'raw'
- * resolve(hostname, domain) -> [ { 'family':'inet', 'type':'dgram', 'ip':'208.113.236.64' } ]
-   * hostname such as "oneill.app" or "battle.net"
-   * domain should be one of 'inet' or 'inet6'
- * connect(fd, domain, address, port) -> true/false
-   * fd as allocated from socket or accept
-   * domain should be 'inet' or 'inet6'
-   * address should be an ip as in a result object's ip trait as returned from resolve
-   * port number in host byte order
+### Constants
+
+Many constants are exposed on the module root such as:
+```
+import * as net from "net.so";
+
+let fd = net.socket(net.AF_INET6, net.SOCK_STREAM);
+```
+
+These constants are:
+```
+ * SOL_SOCKET
+ * SO_ERROR
+ * AF_INET
+ * AF_INET6
+ * AF_LOCAL
+ * AF_UNIX
+ * AF_UNSPEC
+ * SHUT_RDWR
+ * SHUT_RD
+ * SHUT_WR
+ * SOCK_STREAM
+ * SOCK_DGRAM
+ * SOCK_RAW
+ * EAGAIN
+ * EWOULDBLOCK
+ * EINPROGRESS
+```
+
+### Methods
+
+All methods are on the globally allocated module object and include:
+
+ * accept(fd) -> { 'family':(same as domain in `socket`), 'ip':'1.2.3.4', 'port':54321, 'fd':5 }
+   * fd is a socket as allocated by socket, bound with bind, and listening with listen
+   * ip and port will be absent if family is of type AF_UNIX
  * bind(fd, domain, address, port) -> true/false
    * fd as allocated from socket or accept
-   * domain should be 'inet' or 'inet6'
-   * address should be an ip as in "::1" or "127.0.0.1", depending on domain
-   * port number in host byte order
- * sync(fd) -> true/false
+   * domain should be as in `socket`
+   * address should be an ip as in "::1" or "127.0.0.1", or a unix path as in "/tmp/mysocket", depending on domain
+   * port number in host byte order, and should not be passed for unix sockets
+ * connect(fd, domain, address, port) -> true/false
    * fd as allocated from socket or accept
-   * same as man(2) syncfs
+   * domain should be as in `socket`
+   * address should be an ip as in a result object's ip trait as returned from resolve, or a unix path such as "@/tmp/.X11-unix/X0" if it's a UNIX socket
+   * port number in host byte order, and should not be passed for unix sockets
+ * familyname(domain) -> string
+   * domain should be net.AF_INET, AF_INET6, AF_UNSPEC, or AF_UNIX
  * listen(fd, backlog) -> true/false
    * fd as allocated from socket or accept
    * same as man(3) listen almost exactly, but errors are Exceptions
- * accept(fd) -> { 'family':<'inet', 'inet6'>, 'ip':'1.2.3.4', 'port':54321, 'fd':5 }
-   * fd is a socket as allocated by socket, bound with bind, and listening with listen
- * close(fd) -> true/false
+ * resolve(hostname, domain) -> [ { 'family':net.AF_INET6, 'type':net.SOCK_DGRAM, 'ip':'208.113.236.64' } ]
+   * hostname such as "oneill.app" or "battle.net"
+   * domain should be as in `socket`
+   * **See notes below regarding this method!**
+ * socket(domain, type) -> fd
+   * domain should be net.AF_INET, AF_INET6, or AF_UNIX
+   * type should be net.SOCK_STREAM, SOCK_DGRAM, or SOCK_RAW
+ * socktypename(type) -> string
+   * type should be net.SOCK_STREAM, SOCK_DGRAM, or SOCK_RAW
  * shutdown(fd, how) -> true/false
-   * where how is one of 'rd', 'wr', or 'rdwr' as a string
+   * where how is one of net.SHUT_RD, SHUT_WR, or SHUT_RDWR
+ * sync(fd) -> true/false
+   * fd as allocated from socket or accept
+   * same as man(2) syncfs
+ 
+
+Why do "connect" and "bind" require the domain? Well, because. Well, it's because `socket` just returns a file descriptor without domain type which we need in order to correctly connect or bind.
 
 The *resolve* method is synchronous and will block execution while it's running. I may add an async method at some point, but for my purposes it's not an issue (because I don't even use it).
 

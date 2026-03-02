@@ -2,7 +2,7 @@ import * as net from "net.so";
 import * as std from "std";
 import * as os from "os";
 
-const sinfo = { 'family':'inet6', 'ip':'::', 'port':8081 };
+const sinfo = { 'family':net.AF_INET6, 'ip':'::', 'port':8081 };
 const webroot = './webroot';
 
 function uint8arrayToString(arr)
@@ -20,7 +20,7 @@ function stringToUint8array(str)
     return new Uint8Array(arr);
 }
 
-const serverfd = net.socket(sinfo.family, 'stream');
+const serverfd = net.socket(sinfo.family, net.SOCK_STREAM);
 try {
     if( !net.bind(serverfd, sinfo.family, sinfo.ip, sinfo.port) )
     {
@@ -46,6 +46,9 @@ try {
 os.setReadHandler(serverfd, function() {
     try {
         const info = net.accept(serverfd);
+        // Just replace "family" with the resolved family name, since we don't really key on it.
+        // That said, it correlates to a net.AF_INET6, net.AF_UNIX, net.AF_INET, or (realistically) whatever your server instance net.socket picked above.
+        info.family = net.familyname(info.family);
         console.log(`Connection from ${info.family}:[${info.ip}]:${info.port}`);
         setupClient(info);
     } catch(err) {
@@ -54,7 +57,7 @@ os.setReadHandler(serverfd, function() {
     }
 });
 
-console.log(`Listening on ${sinfo.family}:[${sinfo.ip}]:${sinfo.port}`);
+console.log(`Listening on ${net.familyname(sinfo.family)}:[${sinfo.ip}]:${sinfo.port}`);
 
 function setupClient(info)
 {

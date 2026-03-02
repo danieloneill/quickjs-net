@@ -25,7 +25,7 @@ let curline = [];
 let lines = [];
 let fout = os.open(outfilename, (os.O_CREAT | os.O_TRUNC | os.O_WRONLY), 0o777);
 
-const fd = net.socket('inet', 'stream');
+const fd = net.socket(net.AF_INET, net.SOCK_STREAM);
 os.setReadHandler(fd, function() {
     let data = new Uint8Array(1024);
     try {
@@ -61,8 +61,8 @@ os.setReadHandler(fd, function() {
                     inheaders = false;
                     if( x < br-1 )
                     {
-                        const headers = lines.map( line => uint8arrayToString(line).trim() );
-                        console.log( "Headers: "+JSON.stringify(headers,null,2) );
+                            const headers = lines.map( line => uint8arrayToString(line).trim() );
+                            console.log( "Headers: "+JSON.stringify(headers,null,2) );
 
                         const sa = data.slice(x+2, br);
                         written += os.write(fout, sa.buffer, 0, sa.length);
@@ -89,14 +89,14 @@ os.setReadHandler(fd, function() {
 
 let iplist;
 try {
-    iplist = net.resolve("cogconnected.com", 'inet');
+    iplist = net.resolve("cogconnected.com", net.AF_INET);
     console.log(JSON.stringify(iplist, null, 2));
 } catch(err) {
     console.log("resolve: "+err);
     std.exit(-1);
 }
 
-if( !net.connect(fd, "inet", iplist[0].ip, 80) )
+if( !net.connect(fd, net.AF_INET, iplist[0].ip, 80) )
 {
     console.log("no connect");
 }
